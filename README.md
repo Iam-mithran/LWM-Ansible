@@ -2,6 +2,9 @@
 
 This README serves as a **complete hands-on guide** for Ansible learning. It includes YAML manifests and command-line usage to help you practice Ansible related topics.
 
+🎥 Watch the full Ansible Playlist here: [Complete Ansible Playlist on YouTube](https://www.youtube.com/playlist?list=PLPLf8iqkntdPSKxnZyR36-esIA_fGRWuZ)
+
+
 ## 📚 What You’ll Learn
 
 - ✅ Installing Ansible
@@ -465,7 +468,7 @@ Subscribe to my **YouTube Channel** – *Learn With Mithran*
 
 ---
 
-# 🚀 Part 3 – Ansible Gather Facts
+# 🚀 Part 3 – Ansible Controls
 
 This README is part of the **hands-on Ansible learning series**. In this section, you’ll practice:
 
@@ -910,6 +913,275 @@ Assume each task takes **5 seconds** to run.
 ## 📺 Watch the Video
 
 👉 [YouTube – Ansible Roles, Gather Facts & Task Execution Order (Part 3)](https://youtu.be/1IEhp-Pv-vc)
+
+### 📞 Contact Us
+**Phone:** [+91 91500 87745](tel:+919150087745)
+
+### 💬 Ask Your Doubts
+Join our **Discord Community**  
+👉 [Click here to connect](https://discord.gg/N7GBNHBdqw)
+
+### 📺 Explore More Learning
+Subscribe to my **YouTube Channel** – *Learn With Mithran*  
+🎯 [Watch Now](https://www.youtube.com/@LearnWithMithran)
+
+---
+
+# 🚀 Part 4 – Ansible Real Time Playbooks
+
+In this part, we’ll create two playbooks:
+
+1. **Playbook to install Tomcat and deploy a sample application**  
+2. **Playbook to install Jenkins**  
+
+We’ll also see how to set up an **inventory file** (static and dynamic). This README serves as a **complete hands-on guide** for Ansible learning. It includes YAML manifests and command-line usage to help you practice Ansible related topics.
+
+## 📚 What You’ll Learn
+
+- ✅ Writing Playbooks for real-world use cases  
+- ✅ Deploying **Tomcat** and running a sample application  
+- ✅ Installing **Jenkins** with Ansible  
+- ✅ Setting up a **Static Inventory** file  
+- ✅ Using **Dynamic Inventory** with AWS EC2  
+
+---
+
+## 🚀 Steps to Install Tomcat
+
+Before writing the playbook let's understand how to download and install *tomcat* locally, which later on we can use to convert the manual task to Automated Playbook.
+
+1. Update all system packages 
+
+   ```bash
+   sudo yum update -y
+   ```
+
+2. Install Java (required for Tomcat)
+
+   ```bash
+   sudo yum install -y java-1.8.0-openjdk
+   ```
+
+3. Download the Tomcat tar file
+
+   ```bash
+   cd /opt
+   wget https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.110/bin/apache-tomcat-9.0.110.tar.gz
+   ```
+
+4. Extract the Tomcat tar file
+
+   ```bash
+   sudo tar -xvzf apache-tomcat-9.0.110.tar.gz -C /opt
+   ```
+
+5. Start Tomcat service
+
+   ```bash
+   nohup /opt/apache-tomcat-9.0.110/bin/startup.sh &
+   ```
+
+6. Deploy your application (Sample.war)
+
+   ```bash
+   cp /home/ec2-user/sample.war /opt/apache-tomcat-9.0.110/webapps/
+   ```
+
+7. Verify Tomcat is running by checking logs
+
+   ```bash
+   tail -f /opt/apache-tomcat-9.0.110/logs/catalina.out
+   ```
+
+8. Access Tomcat in browser
+
+   ```
+   http://<server-ip>:8080/sample
+   ```
+
+
+### 🔹 Playbook 1 – Tomcat Installation & WAR Deployment
+
+```yaml
+- hosts: all
+  become: yes
+  tasks:
+    - name: upgrade all packages
+      yum:
+        name: '*'
+        state: latest
+
+    - name: install java
+      yum:
+        name: java-1.8.0-openjdk
+        state: present
+
+    - name: Download Tomcat tar file
+      get_url:
+        url: https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.110/bin/apache-tomcat-9.0.110.tar.gz
+        dest: /opt
+
+    - name: Extract tomcat into /opt
+      unarchive:
+        src: /opt/apache-tomcat-9.0.110.tar.gz          # Worker Node
+        dest: /opt                                      # Worker Node
+        remote_src: yes
+
+    - name: Start Tomcat
+      shell: nohup /opt/apache-tomcat-9.0.110/bin/startup.sh &
+
+    - name: Copy Sample.war to Tomcat from Ansible Master
+      copy:
+        src: /home/ec2-user/sample.war                        # Ansible Node
+        dest: /opt/apache-tomcat-9.0.110/webapps/sample.war   # Worker Node
+```
+
+## 📝 Homework Tasks
+
+To strengthen your understanding of Ansible, try completing these tasks on your own:
+
+### Task 1 – Convert Tomcat Playbook into a Role
+- Break down the **Tomcat playbook** into an **Ansible role**.  
+- Create folders like `tasks/`, `handlers/`, `templates/`, and `files/`.  
+- Place WAR files in `files/` and Tomcat configurations in `templates/`.  
+- Update your playbook to call the new role.  
+
+👉 Reference: [Ansible Roles Documentation](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_reuse_roles.html)
+
+---
+
+## 🌍 How Inventory is Managed in Real-Time Environments
+
+In real-world projects, managing inventory is not done manually for each host. Instead, teams follow these practices:
+
+1. **Static Inventory (Small Environments)**  
+   - Used for labs, dev, or small setups.  
+   - IPs or hostnames are written directly in an `inventory.ini` file.  
+   - Example:  
+     ```ini
+     web ansible_host=192.168.1.10 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa
+     db ansible_host=192.168.1.20 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa
+     ```
+
+2. **Dynamic Inventory (Cloud Environments)**  
+   - Common in AWS, Azure, GCP, etc.  
+   - Uses plugins (`aws_ec2`, `azure_rm`, `gcp_compute`) to automatically fetch running instances.  
+   - No need to manually update inventory when servers are added/removed.  
+
+3. **Service Discovery & CMDB**  
+   - Large enterprises often connect Ansible with a **CMDB** (like ServiceNow) or a service discovery tool (like Consul).  
+   - Inventory is fetched dynamically from these systems.
+
+### ✅ Best Practices for Inventory Management
+
+- Use **groups** (web, db, cache, etc.) for role-based deployments.  
+- Store inventory files in **Git** for version control.  
+- Use **Dynamic Inventory** in production to avoid manual updates.  
+- Integrate with **AWS SSM Parameter Store / AWS Inventory** to fetch managed instance details securely without exposing SSH keys.  
+- Use **HashiCorp Vault** to securely manage and retrieve secrets (SSH keys, database passwords, API tokens) instead of storing them in plain inventory files.  
+- Regularly clean up unused hosts and rotate credentials for better security.  
+
+---
+
+## 🚀 Steps to Install Jenkins
+
+Before writing the playbook let's understand how to download and install *Jenkins* locally, which later on we can use to convert the manual task to Automated Playbook.
+
+1. Download and add the Jenkins key
+
+   ```bash
+   wget -O /etc/apt/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+   ```
+
+2. Add the Jenkins repository with the Jenkins key
+
+   ```bash
+   echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list
+   ```
+
+3. Update the package manager cache
+
+   ```bash
+   sudo apt update
+   ```
+
+4. Install dependencies (fontconfig, OpenJDK, Jenkins)
+
+   ```bash
+   sudo apt install -y fontconfig openjdk-21-jre jenkins
+   ```
+
+5. Modify Jenkins service file to change the default port (optional)
+
+   ```bash
+   sudo vi /lib/systemd/system/jenkins.service
+   ```
+
+   Add or edit the line:
+
+   ```
+   Environment="JENKINS_PORT=8080"
+   ```
+
+6. Reload the systemd daemon to apply changes
+
+   ```bash
+   sudo systemctl daemon-reload
+   ```
+
+7. Restart Jenkins service
+
+   ```bash
+   sudo service jenkins restart
+   ```
+
+
+### 🔹 Playbook 2 – Jenkins Installation
+
+```yaml
+- hosts: all
+  become: yes
+  tasks:
+    - name: Download jenkins Key
+      get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        dest: /etc/apt/keyrings/jenkins-keyring.asc
+
+    - name: Add jenkins Repo
+      apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+        state: present
+        filename: jenkins
+
+    - name: Run the equivalent of "apt-get update" as a separate step
+      apt:
+        update_cache: yes
+
+    - name: Install Dependencies
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - fontconfig
+        - openjdk-21-jre
+        - jenkins
+```
+
+## 📝 Homework Tasks
+
+To strengthen your understanding of Ansible, try completing these tasks on your own:
+
+### Task 2 – Change Jenkins Port using Variables & Handlers
+- Modify the **Jenkins service file** to update the port dynamically using an **Ansible variable** (e.g., `jenkins_port: 8081`).  
+- Use the `lineinfile` module or a Jinja2 **template** to inject the variable into `/lib/systemd/system/jenkins.service`.  
+- Implement a **handler** that restarts Jenkins only when the port configuration changes.  
+- Ensure you use `notify` to trigger the handler.  
+
+---
+
+## 📺 Watch the Member Only Video
+
+👉 [Ansible Realtime Scenarios & Dynamic Inventory (Part 4)](https://youtu.be/nW0K21Ykoaw)
 
 ### 📞 Contact Us
 **Phone:** [+91 91500 87745](tel:+919150087745)
